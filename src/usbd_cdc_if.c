@@ -3,7 +3,7 @@
 //
 
 #include "usbd_cdc_if.h"
-#include "eliminator.h"
+#include "controller.h"
 #include "system.h"
 #include "error.h"
 
@@ -11,8 +11,8 @@
 static volatile usbrx_buf_t rxbuf = {0};
 static uint8_t txbuf[TX_BUF_SIZE];
 extern USBD_HandleTypeDef hUsbDeviceFS;
-static uint8_t eliminator_str[ELIMINATOR_MTU];
-static uint8_t eliminator_str_index = 0;
+static uint8_t controller_str[CONTROLLER_MTU];
+static uint8_t controller_str_index = 0;
 
 
 // Private function prototypes
@@ -175,7 +175,7 @@ void cdc_process(void)
 		{
 		   if (rxbuf.buf[rxbuf.tail][i] == '\r')
 		   {
-			   int8_t result = eliminator_parse_str(eliminator_str, eliminator_str_index);
+			   int8_t result = controller_parse_str(controller_str, controller_str_index);
 
 			   // Success
 			   //if(result == 0)
@@ -184,18 +184,18 @@ void cdc_process(void)
 			   //else
 			   //    CDC_Transmit_FS("\a", 1);
 
-			   eliminator_str_index = 0;
+			   controller_str_index = 0;
 		   }
 		   else
 		   {
 			   // Check for overflow of buffer
-			   if(eliminator_str_index >= ELIMINATOR_MTU)
+			   if(controller_str_index >= CONTROLLER_MTU)
 			   {
 				   // TODO: Return here and discard this CDC buffer?
-				   eliminator_str_index = 0;
+				   controller_str_index = 0;
 			   }
 
-			   eliminator_str[eliminator_str_index++] = rxbuf.buf[rxbuf.tail][i];
+			   controller_str[controller_str_index++] = rxbuf.buf[rxbuf.tail][i];
 		   }
 		}
 
