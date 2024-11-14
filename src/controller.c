@@ -1,5 +1,5 @@
 //
-// eliminator: Parse an incoming command from the USB CDC port and change function
+// controller: Parse an incoming command from the USB CDC port and change function
 //
 
 #include "stm32f0xx_hal.h"
@@ -11,7 +11,7 @@
 #include "subaru_levorg_vnx.h"
 
 // Parse an incoming command from the USB CDC port
-int8_t eliminator_parse_str(uint8_t *buf, uint8_t len)
+int8_t controller_parse_str(uint8_t *buf, uint8_t len)
 {
 
     // Convert from ASCII (2nd character to end)
