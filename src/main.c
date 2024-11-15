@@ -229,10 +229,14 @@ int main(void)
                     case CAN_ID_CCU:
                         if (PreviousCanId == CAN_ID_CCU) { // TCU don't transmit message
                             TcuStatus = NOT_READY;
+                            TcuControl = IDLING_STOP_OFF;
                             CcuStatus = ENGINE_STOP;
                             ProgStatus = PROCESSING;
-                            // led_blink(Status);
                             Retry = 0;
+                            AvhStatus = AVH_UNHOLD;
+                            PrevAvhStatus = AVH_UNHOLD;
+                            Brake = 0.0;
+                            PrevBrake = 0.0;
                         } else {
 			    if (rx_msg_data[6] & 0x40) {
                                 dprintf_("# Information: Eliminate engine auto stop cancelled.\n");
