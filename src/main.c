@@ -246,7 +246,7 @@ int main(void)
 			}
                         if(ProgStatus == PROCESSING){
                             if(TcuStatus == TcuControl){
-				if(TcuStatus == IDLING_STOP_ON)
+				if(TcuStatus == IDLING_STOP_ON){
                                     dprintf_("# INFO: IDLING STOP ON succeeded.\n");
 			        } else {
                                     dprintf_("# INFO: IDLING STOP OFF succeeded.\n");
