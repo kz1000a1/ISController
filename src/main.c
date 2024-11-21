@@ -103,7 +103,7 @@ void send_frame(uint8_t* rx_msg_data){
 }
 
 
-void led_blink(enum prog_status Status){
+void led_blink(uint8_t Status){
     if(Status & 1){
         led_orange_on();
     } else {
@@ -138,6 +138,9 @@ int main(void)
     system_init();
     can_init();
     led_init();
+	
+    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+
 #ifdef DEBUG_MODE
     usb_init();
 #endif
@@ -177,8 +180,8 @@ int main(void)
 			        if(AvhStatus == AVH_HOLD && PrevBrake < BRAKE_HIGH && BRAKE_HIGH <= Brake){
                                     TcuControl = IDLING_STOP_ON;
 				    ProgStatus = PROCESSING;
-                                    // led_blink((VnxParam.AvhStatus << 1) + AvhControl);
-                                    // print_param(&VnxParam, AvhControl, PrevSpeed, PrevBrake, MaxBrake);
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+                                    dprintf_("# INFO: Request IDLING STOP OFF => ON.\n");
                                 }
                             }
                         }
@@ -192,11 +195,11 @@ int main(void)
 
                         if(ProgStatus == SUCCEEDED){
                             if(TcuStatus == IDLING_STOP_ON && TcuControl == IDLING_STOP_ON){
-                                if((PrevAvhStatus == AVH_HOLD) && (AvhStatus == AVH_UNHOLD)){ // AVH_HOLD => AVH_ON
+                                if(AvhStatus == AVH_UNHOLD){
                                     TcuControl = IDLING_STOP_OFF;
 				    ProgStatus = PROCESSING;
-                                    // led_blink((VnxParam.AvhStatus << 1) + AvhControl);
-                                    // dprintf_("# INFO AVH HOLD released. RepressBrake:%d(0:OFF,1:ON)\n", RepressBrake);
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+                                    dprintf_("# INFO: Request IDLING STOP ON => OFF.\n");
 				}
                             }
                         }
@@ -205,21 +208,50 @@ int main(void)
                         break;
 			
                     case CAN_ID_TCU:
-                        if ((rx_msg_data[2] & 0x08) != 0x08) {
-                            TcuStatus = NOT_READY;
-                        } else {
-			    if (rx_msg_data[4] == 0xc0) {
-                                TcuStatus = IDLING_STOP_OFF;
-                            } else {
-                                TcuStatus = IDLING_STOP_ON;
-			    }
+			switch(TcuStatus){
+			    case NOT_READY:
+                                if ((rx_msg_data[2] & 0x08) == 0x08) {
+			            if (rx_msg_data[4] == 0xc0) {
+                                        TcuStatus = IDLING_STOP_OFF;
+                                    } else {
+                                        TcuStatus = IDLING_STOP_ON;
+			            }
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+                                }
+				break;
+				
+			    case IDLING_STOP_ON:
+				if ((rx_msg_data[2] & 0x08) != 0x08) {
+                                    TcuStatus = NOT_READY;
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+				} else {
+			            if (rx_msg_data[4] == 0xc0) {
+                                        TcuStatus = IDLING_STOP_OFF;
+                                        led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+			            }
+                                }
+				break;
+				
+			    case IDLING_STOP_OFF:
+				if ((rx_msg_data[2] & 0x08) != 0x08) {
+                                    TcuStatus = NOT_READY;
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+				} else {
+			            if (rx_msg_data[4] != 0xc0) {
+                                        TcuStatus = IDLING_STOP_ON;
+                                        led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+			            }
+                                }
+				break;
 			}
                         if(ProgStatus == PROCESSING){
                             if(TcuStatus == TcuControl){
-	                        dprintf_("# Information: Eliminate engine auto stop restarted.\n");
+				if(TcuStatus == IDLING_STOP_ON)
+                                    dprintf_("# INFO: IDLING STOP ON succeeded.\n");
+			        } else {
+                                    dprintf_("# INFO: IDLING STOP OFF succeeded.\n");
+			        }
                                 ProgStatus = SUCCEEDED;
-                                // led_blink(Status);
-                                // CcuStatus = PAUSE;
                                 Retry = 0;
                             }
                         }
@@ -228,20 +260,23 @@ int main(void)
 
                     case CAN_ID_CCU:
                         if (PreviousCanId == CAN_ID_CCU) { // TCU don't transmit message
-                            TcuStatus = NOT_READY;
-                            TcuControl = IDLING_STOP_OFF;
-                            CcuStatus = ENGINE_STOP;
-                            ProgStatus = PROCESSING;
-                            Retry = 0;
-                            AvhStatus = AVH_UNHOLD;
-                            PrevAvhStatus = AVH_UNHOLD;
-                            Brake = 0.0;
-                            PrevBrake = 0.0;
+			    if(CcuStatus != ENGINE_STOP){
+                                TcuStatus = NOT_READY;
+                                TcuControl = IDLING_STOP_OFF;
+                                CcuStatus = ENGINE_STOP;
+                                ProgStatus = PROCESSING;
+                                Retry = 0;
+                                AvhStatus = AVH_UNHOLD;
+                                PrevAvhStatus = AVH_UNHOLD;
+                                Brake = 0.0;
+                                PrevBrake = 0.0;
+                                dprintf_("# INFO: ENGINE stop.\n");
+                                led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+			    }
                         } else {
 			    if (rx_msg_data[6] & 0x40) {
-                                dprintf_("# Information: Eliminate engine auto stop cancelled.\n");
+                                dprintf_("# INFO: IDLING STOP CONTROL cancelled.\n");
                                 ProgStatus = CANCELLED;
-                                // led_blink(Status);
                             }
 			    switch(ProgStatus){
 				case PROCESSING:
@@ -250,13 +285,10 @@ int main(void)
 					    if(TcuStatus != NOT_READY){
 					        if (TcuStatus != TcuControl) { // Transmit message for eliminate engine auto stop
                                                     if (MAX_RETRY <= Retry) { // Previous eliminate engine auto stop message failed
-                                                        dprintf_("# Warning: Eliminate engine auto stop failed\n");
+                                                        dprintf_("# ERROR: IDLING STOP CONTROL failed. Retry:%d.\n", Retry);
                                                         ProgStatus = FAILED;
-                                                        // led_blink(Status);
                                                     } else {
                                                         Retry++;
-                                                        // led_blink(Retry);
-                                                        // HAL_Delay(50); // 50ms delay like real CCU
                                                         HAL_Delay(50 / 2);
                                                         send_frame(rx_msg_data); // Transmit message
                                                         // Discard message(s) that received during HAL_delay()
@@ -265,13 +297,13 @@ int main(void)
                                                         }
 				                        rx_msg_header.StdId = CAN_ID_TCU;
                                                         CcuStatus = PAUSE;
-                                                        // led_blink(Status);
 						    }
                                                 }
 					    }
 					    break;
 
 				        case ENGINE_STOP:
+                                            dprintf_("# INFO: ENGINE start.\n");
 				        case PAUSE:
                                             CcuStatus = READY;
 				            break;
