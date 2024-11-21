@@ -130,7 +130,7 @@ int main(void)
     static uint16_t PreviousCanId = CAN_ID_CCU;
     static uint8_t Retry = 0;
     static uint8_t AvhStatus = AVH_UNHOLD;
-    static uint8_t PrevAvhStatus = AVH_UNHOLD;
+    // static uint8_t PrevAvhStatus = AVH_UNHOLD;
     static float Brake = 0.0;
     static float PrevBrake = 0.0;
 
@@ -190,7 +190,7 @@ int main(void)
                         break;
 
                     case CAN_ID_AVH_STATUS:
-                        PrevAvhStatus = AvhStatus;
+                        // PrevAvhStatus = AvhStatus;
                         AvhStatus = ((rx_msg_data[5] & 0x22) == 0x22);
 
                         if(ProgStatus == SUCCEEDED){
@@ -267,7 +267,7 @@ int main(void)
                                 ProgStatus = PROCESSING;
                                 Retry = 0;
                                 AvhStatus = AVH_UNHOLD;
-                                PrevAvhStatus = AVH_UNHOLD;
+                                // PrevAvhStatus = AVH_UNHOLD;
                                 Brake = 0.0;
                                 PrevBrake = 0.0;
                                 dprintf_("# INFO: ENGINE stop.\n");
