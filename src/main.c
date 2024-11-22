@@ -166,47 +166,6 @@ int main(void)
 
             if(DebugMode != CANDUMP){
                 switch (rx_msg_header.StdId) {
-                    case CAN_ID_SPEED:
-                        // PrevSpeed = Speed;
-                        PrevBrake = Brake;
-                        // Speed = (rx_msg_data[2] + ((rx_msg_data[3] & 0x1f) << 8)) * 0.05625;
-                        Brake = rx_msg_data[5] / 0.8;
-                        if(100 < Brake){
-                            Brake = 100;
-                        }
-
-                        if(ProgStatus == SUCCEEDED){
-                            if(TcuStatus == IDLING_STOP_OFF && TcuControl == IDLING_STOP_OFF){
-			        if(AvhStatus == AVH_HOLD && PrevBrake < BRAKE_HIGH && BRAKE_HIGH <= Brake){
-                                    TcuControl = IDLING_STOP_ON;
-				    ProgStatus = PROCESSING;
-                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
-                                    dprintf_("# INFO: Request IDLING STOP OFF => ON.\n");
-                                }
-                            }
-                        }
-
-                        PreviousCanId = rx_msg_header.StdId;
-                        break;
-
-                    case CAN_ID_AVH_STATUS:
-                        // PrevAvhStatus = AvhStatus;
-                        AvhStatus = ((rx_msg_data[5] & 0x22) == 0x22);
-
-                        if(ProgStatus == SUCCEEDED){
-                            if(TcuStatus == IDLING_STOP_ON && TcuControl == IDLING_STOP_ON){
-                                if(AvhStatus == AVH_UNHOLD){
-                                    TcuControl = IDLING_STOP_OFF;
-				    ProgStatus = PROCESSING;
-                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
-                                    dprintf_("# INFO: Request IDLING STOP ON => OFF.\n");
-				}
-                            }
-                        }
-
-                        // PreviousCanId = rx_msg_header.StdId;
-                        break;
-			
                     case CAN_ID_TCU:
 			switch(TcuStatus){
 			    case NOT_READY:
@@ -256,6 +215,47 @@ int main(void)
                             }
                         }
                         PreviousCanId = rx_msg_header.StdId;
+                        break;
+
+                    case CAN_ID_SPEED:
+                        // PrevSpeed = Speed;
+                        PrevBrake = Brake;
+                        // Speed = (rx_msg_data[2] + ((rx_msg_data[3] & 0x1f) << 8)) * 0.05625;
+                        Brake = rx_msg_data[5] / 0.8;
+                        if(100 < Brake){
+                            Brake = 100;
+                        }
+
+                        if(ProgStatus == SUCCEEDED){
+                            if(TcuStatus == IDLING_STOP_OFF && TcuControl == IDLING_STOP_OFF){
+			        if(AvhStatus == AVH_HOLD && PrevBrake < BRAKE_HIGH && BRAKE_HIGH <= Brake){
+                                    TcuControl = IDLING_STOP_ON;
+				    ProgStatus = PROCESSING;
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+                                    dprintf_("# INFO: Request IDLING STOP OFF => ON.\n");
+                                }
+                            }
+                        }
+
+                        PreviousCanId = rx_msg_header.StdId;
+                        break;
+
+                    case CAN_ID_AVH_STATUS:
+                        // PrevAvhStatus = AvhStatus;
+                        AvhStatus = ((rx_msg_data[5] & 0x22) == 0x22);
+
+                        if(ProgStatus == SUCCEEDED){
+                            if(TcuStatus == IDLING_STOP_ON && TcuControl == IDLING_STOP_ON){
+                                if(AvhStatus == AVH_UNHOLD){
+                                    TcuControl = IDLING_STOP_OFF;
+				    ProgStatus = PROCESSING;
+                                    led_blink(((TcuStatus == IDLING_STOP_ON) << 1) + (TcuControl == IDLING_STOP_ON));
+                                    dprintf_("# INFO: Request IDLING STOP ON => OFF.\n");
+				}
+                            }
+                        }
+
+                        // PreviousCanId = rx_msg_header.StdId;
                         break;
 
                     case CAN_ID_CCU:
